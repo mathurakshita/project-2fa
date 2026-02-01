@@ -13,6 +13,9 @@ python init_db.py <br>
 
 python app.py <br>
 
+username: testuser <br>
+P/W - Pass@123
+
 Open - http://127.0.0.1:5000/login <br>
 
 #6 Individualised / Skilled-based 2FA
