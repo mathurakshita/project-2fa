@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sudoku Challenge</title>
+  <link rel="stylesheet" href="/static/sudoku.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <div class="title">Sudoku Challenge</div>
+      <div class="sub">Step 2 of 2: solve within the time limit</div>
+    </div>
+    <div class="status">
+      <div id="timer" class="timer">Time: --</div>
+      <div id="attempts" class="attempts">Attempts: --</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="msg" class="msg" aria-live="polite"></div>
+
+    <div id="grid" class="grid" aria-label="Sudoku grid"></div>
+
+    <div class="actions">
+      <button id="submitBtn">Submit</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+      <button id="logoutBtn" class="secondary">Logout</button>
+    </div>
+
+    <div class="note">This is a demo “human skill challenge”.</div>
+  </div>
+
+  <script src="/static/sudoku.js"></script>
+</body>
+</html>

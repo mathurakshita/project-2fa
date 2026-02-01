@@ -1,0 +1,111 @@
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: #0b1220;
+  color: #e9eefc;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+
+.title { font-size: 18px; font-weight: 700; }
+.sub { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+
+.status { display: flex; gap: 12px; align-items: center; }
+.timer, .attempts {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.wrap {
+  display: grid;
+  place-items: center;
+  padding: 22px 14px 40px;
+}
+
+.msg {
+  min-height: 22px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(9, 44px);
+  grid-template-rows: repeat(9, 44px);
+  gap: 0;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+
+.cell {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.cell input {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  font-size: 18px;
+  color: #e9eefc;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.cell.given input {
+  font-weight: 800;
+  color: #ffffff;
+  opacity: 0.95;
+}
+
+.cell input::-webkit-outer-spin-button,
+.cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell input[type=number] { -moz-appearance: textfield; }
+
+.cell.thick-right { border-right: 2px solid rgba(255,255,255,0.35); }
+.cell.thick-bottom { border-bottom: 2px solid rgba(255,255,255,0.35); }
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #4b86ff;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+button:hover { filter: brightness(1.05); }
+
+.note {
+  margin-top: 14px;
+  font-size: 12px;
+  opacity: 0.7;
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demo Authentication</title>
+  <link rel="stylesheet" href="/static/login.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <div class="badge">Demo Authentication Screen</div>
+      <h1>Sign in</h1>
+      <p class="sub">Step 1 of 2: password verification</p>
+
+      <form id="loginForm">
+        <label>
+          Username
+          <input id="username" type="text" autocomplete="off" required />
+        </label>
+
+        <label>
+          Password
+          <input id="password" type="password" autocomplete="off" required />
+        </label>
+
+        <button type="submit">Continue</button>
+      </form>
+
+      <div id="msg" class="msg" aria-live="polite"></div>
+      <div class="footerNote">Tip: press F11 for fullscreen demo.</div>
+    </div>
+  </div>
+
+  <script src="/static/login.js"></script>
+</body>
+</html>
