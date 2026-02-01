@@ -3,10 +3,10 @@
 How to run - 
 
 python -m venv .venv
-*Windows: \br
-.venv\Scripts\activate \br
-*Mac/Linux: \br
-source .venv/bin/activate \br
+*Windows: \n
+.venv\Scripts\activate \n
+*Mac/Linux: \n
+source .venv/bin/activate \n
 
 pip install -r requirements.txt
 python init_db.py
