@@ -3,9 +3,9 @@
 How to run - 
 
 python -m venv .venv
-# Windows:
+*Windows:
 .venv\Scripts\activate
-# Mac/Linux:
+*Mac/Linux:
 source .venv/bin/activate
 
 pip install -r requirements.txt
