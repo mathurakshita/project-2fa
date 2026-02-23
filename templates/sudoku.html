@@ -19,17 +19,40 @@
   </div>
 
   <div class="wrap">
-    <div id="msg" class="msg" aria-live="polite"></div>
-
-    <div id="grid" class="grid" aria-label="Sudoku grid"></div>
-
-    <div class="actions">
-      <button id="submitBtn">Submit</button>
-      <button id="resetBtn" class="secondary">Reset</button>
-      <button id="logoutBtn" class="secondary">Logout</button>
+    <!-- Lockout screen (hidden by default) -->
+    <div id="lockout" class="lockout hidden">
+      <h2>Access denied</h2>
+      <p id="lockoutText">You have used all Sudoku attempts.</p>
+      <div class="actions">
+        <button id="backToLoginBtn">Back to login</button>
+      </div>
     </div>
 
-    <div class="note">This is a demo “human skill challenge”.</div>
+    <!-- Normal challenge UI -->
+    <div id="challenge">
+      <div id="msg" class="msg" aria-live="polite"></div>
+
+      <div id="grid" class="grid" aria-label="Sudoku grid"></div>
+
+      <div class="actions">
+        <button id="submitBtn">Submit</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+        <button id="logoutBtn" class="secondary">Logout</button>
+      </div>
+
+      <div class="note">This is a demo “human skill challenge”.</div>
+    </div>
+  </div>
+
+  <!-- Timeout Modal -->
+  <div id="timeoutModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modalCard">
+      <h2 id="modalTitle">Time’s up</h2>
+      <p id="modalText">You couldn’t finish in time.</p>
+      <div class="modalActions">
+        <button id="tryAgainBtn">Try again</button>
+      </div>
+    </div>
   </div>
 
   <script src="/static/sudoku.js"></script>

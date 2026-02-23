@@ -221,3 +221,65 @@ button.secondary:hover {
     text-align: center;
   }
 }
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modalCard {
+  width: min(420px, calc(100vw - 40px));
+  background: #111a2b;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+}
+
+.modalCard h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.modalCard p {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.lockout {
+  width: min(520px, calc(100vw - 40px));
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  text-align: center;
+}
+
+.lockout.hidden { display: none; }
+
+.lockout h2 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.lockout p {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  opacity: 0.9;
+}

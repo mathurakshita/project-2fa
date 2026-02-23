@@ -7,13 +7,43 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from database import init_schema, get_user_by_username, close_db
 from sudoku_bank import PUZZLES
 
-APP_TIME_LIMIT_SECONDS = 10
+APP_TIME_LIMIT_SECONDS = 20
 PASSWORD_ATTEMPTS = 3
 SUDOKU_ATTEMPTS = 3
 
 app = Flask(__name__)
 app.secret_key = "change-this-in-real-use"  # for demo only
 app.teardown_appcontext(close_db)
+
+@app.route("/api/sudoku/timeout", methods=["POST"])
+def api_sudoku_timeout():
+    if not session.get("pwd_ok"):
+        return jsonify(ok=False, error="Not authenticated."), 401
+
+    if session.get("sudoku_attempts_left", 0) <= 0:
+        return jsonify(ok=False, error="Locked. No attempts left.", locked=True), 403
+
+    if not session.get("sudoku_start_ts"):
+        return jsonify(ok=False, error="No active puzzle."), 400
+
+    now = int(time.time())
+    started = int(session["sudoku_start_ts"])
+    time_limit = int(session.get("time_limit", APP_TIME_LIMIT_SECONDS))
+
+    # If they call it early, don't penalize.
+    if now - started <= time_limit:
+        remaining = max(0, time_limit - (now - started))
+        return jsonify(ok=False, error="Time's up, Try again!", remaining=remaining), 400
+
+    # Expired -> consume an attempt and reset puzzle state for next try
+    session["sudoku_attempts_left"] -= 1
+    attempts_left = session["sudoku_attempts_left"]
+
+    session["sudoku_puzzle"] = None
+    session["sudoku_solution"] = None
+    session["sudoku_start_ts"] = None
+
+    return jsonify(ok=True, attempts_left=attempts_left, locked=(attempts_left <= 0))
 
 def session_bootstrap():
     session.setdefault("pwd_attempts_left", PASSWORD_ATTEMPTS)
@@ -105,6 +135,9 @@ def api_login():
 def api_sudoku_puzzle():
     if not session.get("pwd_ok"):
         return jsonify(ok=False, error="Not authenticated."), 401
+    if session.get("sudoku_attempts_left", 0) <= 0:
+        return jsonify(ok=False, error="Locked. No attempts left.", locked=True), 403
+        
 
     # If puzzle already issued, return the same one (prevents refresh cheating)
     if session.get("sudoku_puzzle") and session.get("sudoku_solution") and session.get("sudoku_start_ts"):
@@ -136,7 +169,7 @@ def api_sudoku_verify():
         return jsonify(ok=False, error="Not authenticated."), 401
 
     if session.get("sudoku_attempts_left", 0) <= 0:
-        return jsonify(ok=False, error="Locked. No attempts left."), 403
+        return jsonify(ok=False, error="Locked. No attempts left.", locked=True), 403
 
     if not session.get("sudoku_solution") or not session.get("sudoku_start_ts"):
         return jsonify(ok=False, error="No active puzzle. Refresh Sudoku page."), 400
@@ -144,13 +177,23 @@ def api_sudoku_verify():
     now = int(time.time())
     started = int(session["sudoku_start_ts"])
     time_limit = int(session.get("time_limit", APP_TIME_LIMIT_SECONDS))
+
+    # --- TIME EXPIRED ---
     if now - started > time_limit:
         session["sudoku_attempts_left"] -= 1
-        # Issue a new puzzle next time
+        left = session["sudoku_attempts_left"]
+
+        # Clear puzzle so next load gives a new one
         session["sudoku_puzzle"] = None
         session["sudoku_solution"] = None
         session["sudoku_start_ts"] = None
-        return jsonify(ok=False, error="Time expired.", attempts_left=session["sudoku_attempts_left"]), 408
+
+        return jsonify(
+            ok=False,
+            error="Time expired.",
+            attempts_left=left,
+            locked=(left <= 0)
+        ), 408
 
     data = request.get_json(silent=True) or {}
     grid = data.get("grid")
@@ -177,11 +220,19 @@ def api_sudoku_verify():
     except Exception:
         return jsonify(ok=False, error="Grid must contain numbers 0-9."), 400
 
+    # --- WRONG SOLUTION ---
     if norm != solution:
         session["sudoku_attempts_left"] -= 1
-        return jsonify(ok=False, error="Wrong Sudoku solution.", attempts_left=session["sudoku_attempts_left"]), 401
+        left = session["sudoku_attempts_left"]
 
-    # Success
+        return jsonify(
+            ok=False,
+            error="Wrong Sudoku solution.",
+            attempts_left=left,
+            locked=(left <= 0)
+        ), 401
+
+    # --- SUCCESS ---
     session["sudoku_ok"] = True
     return jsonify(ok=True, next="/welcome")
 
@@ -192,4 +243,4 @@ def api_logout():
 
 if __name__ == "__main__":
     init_schema()
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1", port=8000)
