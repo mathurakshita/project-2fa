@@ -179,7 +179,7 @@ def api_sudoku_verify():
     time_limit = int(session.get("time_limit", APP_TIME_LIMIT_SECONDS))
 
     # --- TIME EXPIRED ---
-    if now - started > time_limit:
+    if now - started > time_limit+1:
         session["sudoku_attempts_left"] -= 1
         left = session["sudoku_attempts_left"]
 

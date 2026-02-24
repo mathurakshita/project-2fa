@@ -136,26 +136,9 @@ function startTimer() {
       clearInterval(timerHandle);
       timerHandle = null;
 
-      try {
-        const res = await fetch("/api/sudoku/timeout", { method: "POST" });
-        const data = await res.json();
-
-        if (data.ok) {
-          attemptsEl.textContent = `Attempts: ${data.attempts_left}`;
-
-          if (data.locked) {
-            tryAgainBtn.style.display = "none";
-            enterLockoutMode("You're not the right user! Learn more sudoku!");
-          } else {
-            tryAgainBtn.style.display = "inline-block";
-            openModal(`You ran out of time. Attempts left: ${data.attempts_left}.`);
-          }
-        } else {
-          openModal(data.error || "Time expired.");
-        }
-      } catch (e) {
-        openModal("Time expired. Network error—please try again.");
-      }
+    
+      await autoSubmitOnTimeout();
+      
     }
   }, 250);
 }
@@ -251,6 +234,45 @@ backToLoginBtn.addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });
   window.location.href = "/login";
 });
+
+async function autoSubmitOnTimeout() {
+  showMessage("");
+
+  const grid = readGrid();
+
+  try {
+    const res = await fetch("/api/sudoku/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grid }),
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      // If you really want login instead of welcome, change to "/login"
+      window.location.href = data.next || "/welcome";
+      return;
+    }
+
+    // If locked, replace screen immediately
+    if (data.locked) {
+      enterLockoutMode("You have used all Sudoku attempts. Please try again later.");
+      return;
+    }
+
+    // Wrong/empty grid -> show popup with attempts left
+    const leftText = (data.attempts_left !== undefined) ? ` Attempts left: ${data.attempts_left}.` : "";
+    if (data.attempts_left !== undefined) attemptsEl.textContent = `Attempts: ${data.attempts_left}`;
+
+    tryAgainBtn.style.display = "inline-block";
+    openModal(`${data.error || "Incorrect solution."}${leftText}`);
+  } catch (e) {
+    // fallback
+    tryAgainBtn.style.display = "inline-block";
+    openModal("Time expired. Could not auto-submit due to a network error. Please try again.");
+  }
+}
 
 // Start
 loadPuzzle();
