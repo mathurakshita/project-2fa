@@ -3,7 +3,7 @@
 const gridEl = document.getElementById("grid");
 const msgEl = document.getElementById("msg");
 const timerEl = document.getElementById("timer");
-const attemptsEl = document.getElementById("attempts");
+const heartsEl = document.getElementById("hearts");
 const submitBtn = document.getElementById("submitBtn");
 const resetBtn = document.getElementById("resetBtn");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -24,6 +24,46 @@ let startedAt = null;
 let timeLimit = null;
 let timerHandle = null;
 let timeoutHandled = false; // prevents double timeout calls
+let isSubmitting = false;   // prevents double-submit (button spam / timer race)
+const MAX_LIVES = 3;
+let lastAttemptsLeft = null;
+
+function renderHearts(attemptsLeft, animateLoss = false) {
+  if (!heartsEl) return;
+
+  // First draw: just render with a small pop
+  if (lastAttemptsLeft === null) {
+    lastAttemptsLeft = attemptsLeft;
+  }
+
+  const prev = lastAttemptsLeft;
+  heartsEl.innerHTML = "";
+
+  for (let i = 0; i < MAX_LIVES; i++) {
+    const span = document.createElement("span");
+    const isAlive = i < attemptsLeft;
+
+    span.className = "heart";
+    span.textContent = "❤";
+
+    if (!isAlive) span.classList.add("lost");
+
+    // Animate the specific heart that was just lost
+    // Example: prev=3, attemptsLeft=2 => heart index 2 was lost (0-based)
+    if (animateLoss && attemptsLeft < prev) {
+      const lostIndex = attemptsLeft; // the first "lost" position
+      if (i === lostIndex) {
+        span.classList.add("break");
+      }
+    } else {
+      span.classList.add("pop");
+    }
+
+    heartsEl.appendChild(span);
+  }
+
+  lastAttemptsLeft = attemptsLeft;
+}
 
 function showMessage(text, isError = false) {
   msgEl.textContent = text;
@@ -39,10 +79,13 @@ function closeModal() {
   timeoutModal.classList.add("hidden");
 }
 
-function enterLockoutMode(text) {
-  // stop timer
+function stopTimer() {
   if (timerHandle) clearInterval(timerHandle);
   timerHandle = null;
+}
+
+function enterLockoutMode(text) {
+  stopTimer();
 
   // hide sudoku UI, show lockout
   challengeEl.style.display = "none";
@@ -78,12 +121,8 @@ function buildGrid(puz) {
       } else {
         inp.value = "";
         inp.addEventListener("input", () => {
-          // Keep only 1-9 (single digit)
           const val = inp.value.replace(/[^0-9]/g, "");
-          if (val === "0") {
-            inp.value = "";
-            return;
-          }
+          if (val === "0") { inp.value = ""; return; }
           if (val.length > 1) inp.value = val[val.length - 1];
           if (inp.value) {
             const n = parseInt(inp.value, 10);
@@ -121,7 +160,7 @@ function resetToPuzzle() {
 }
 
 function startTimer() {
-  if (timerHandle) clearInterval(timerHandle);
+  stopTimer();
 
   timerHandle = setInterval(async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -130,55 +169,87 @@ function startTimer() {
 
     timerEl.textContent = `Time: ${left}s`;
 
+    // Timer expiry triggers auto-submit exactly once
     if (left <= 0 && !timeoutHandled) {
       timeoutHandled = true;
+      stopTimer();
 
-      clearInterval(timerHandle);
-      timerHandle = null;
-
-    
-      await autoSubmitOnTimeout();
-      
+      // Prevent collision with manual submit
+      if (!isSubmitting) {
+        await autoSubmitOnTimeout();
+      }
     }
   }, 250);
 }
 
 async function loadPuzzle() {
-  showMessage("");
+  // reset flags for a new attempt
   timeoutHandled = false;
+  isSubmitting = false;
 
   // Reset UI state
+  showMessage("");
   closeModal();
   lockoutEl.classList.add("hidden");
   challengeEl.style.display = "block";
   tryAgainBtn.style.display = "inline-block";
 
-  const res = await fetch("/api/sudoku/puzzle");
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/sudoku/puzzle");
+    const data = await res.json();
 
-  if (!data.ok) {
-    showMessage(data.error || "Failed to load puzzle.", true);
+    if (!data.ok) {
+      // If backend says locked, show lockout
+      if (data.locked) {
+        window.location.href = "/failed";
+        return;
+      }
+      // Otherwise show a message and stop (don’t recurse infinitely)
+      showMessage(data.error || "Failed to load puzzle.", true);
+      return;
+    }
+
+    if (data.attempts_left !== undefined && data.attempts_left <= 0) {
+      window.location.href = "/failed";
+      return; 
+    }
+
+    puzzle = data.puzzle;
+    startedAt = data.started_at;
+    timeLimit = data.time_limit;
+
+    lastAttemptsLeft = null;
+    renderHearts(data.attempts_left, false);
+    timerEl.textContent = `Time: ${timeLimit}s`;
+
+    buildGrid(puzzle);
+    startTimer();
+  } catch (e) {
+    showMessage("Network error while loading puzzle.", true);
+  }
+}
+
+async function handleFailedAttempt(data) {
+  // data: { error, attempts_left, locked }
+
+  if (data.locked) {
+    window.location.href = "/failed";
     return;
   }
 
-  // OPTIONAL (recommended): if backend ever returns 0 attempts, lock out immediately
-  if (data.attempts_left !== undefined && data.attempts_left <= 0) {
-    enterLockoutMode("You have used all Sudoku attempts. Please try again later.");
-    return;
+  if (data.attempts_left !== undefined) {
+    renderHearts(data.attempts_left, true);
   }
 
-  puzzle = data.puzzle;
-  startedAt = data.started_at;
-  timeLimit = data.time_limit;
-
-  attemptsEl.textContent = `Attempts: ${data.attempts_left}`;
-  timerEl.textContent = `Time: ${timeLimit}s`;
-
-  buildGrid(puzzle);
-  startTimer();
+  // Show modal and let user click "Try again" to start a fresh attempt (fresh timer)
+  tryAgainBtn.style.display = "inline-block";
+  openModal(`${data.error || "Wrong answer."} Attempts left: ${data.attempts_left}.`);
 }
 
 submitBtn.addEventListener("click", async () => {
+  if (isSubmitting) return;
+  isSubmitting = true;
+
   showMessage("");
 
   const grid = readGrid();
@@ -193,34 +264,22 @@ submitBtn.addEventListener("click", async () => {
     const data = await res.json();
 
     if (!data.ok) {
-      // If locked, replace screen immediately
-      if (data.locked) {
-        enterLockoutMode("You have used all Sudoku attempts. Please try again later.");
-        return;
-      }
-
-      const left = data.attempts_left !== undefined ? ` Attempts left: ${data.attempts_left}.` : "";
-      if (data.attempts_left !== undefined) attemptsEl.textContent = `Attempts: ${data.attempts_left}`;
-
-      showMessage(`${data.error || "Wrong answer."}${left}`, true);
-
-      // If time expired, server clears puzzle; reload a fresh one
-      if (data.error === "Time expired.") {
-        await loadPuzzle();
-      }
-
+      await handleFailedAttempt(data);
       return;
     }
 
     window.location.href = data.next || "/welcome";
   } catch (e) {
     showMessage("Network error. Try again.", true);
+  } finally {
+    // allow resubmission if still on the page
+    isSubmitting = false;
   }
 });
 
 tryAgainBtn.addEventListener("click", async () => {
   closeModal();
-  await loadPuzzle();
+  await loadPuzzle(); // fresh attempt => fresh timer
 });
 
 resetBtn.addEventListener("click", () => resetToPuzzle());
@@ -236,7 +295,8 @@ backToLoginBtn.addEventListener("click", async () => {
 });
 
 async function autoSubmitOnTimeout() {
-  showMessage("");
+  if (isSubmitting) return;
+  isSubmitting = true;
 
   const grid = readGrid();
 
@@ -250,27 +310,16 @@ async function autoSubmitOnTimeout() {
     const data = await res.json();
 
     if (data.ok) {
-      // If you really want login instead of welcome, change to "/login"
       window.location.href = data.next || "/welcome";
       return;
     }
 
-    // If locked, replace screen immediately
-    if (data.locked) {
-      enterLockoutMode("You have used all Sudoku attempts. Please try again later.");
-      return;
-    }
-
-    // Wrong/empty grid -> show popup with attempts left
-    const leftText = (data.attempts_left !== undefined) ? ` Attempts left: ${data.attempts_left}.` : "";
-    if (data.attempts_left !== undefined) attemptsEl.textContent = `Attempts: ${data.attempts_left}`;
-
-    tryAgainBtn.style.display = "inline-block";
-    openModal(`${data.error || "Incorrect solution."}${leftText}`);
+    await handleFailedAttempt(data);
   } catch (e) {
-    // fallback
     tryAgainBtn.style.display = "inline-block";
     openModal("Time expired. Could not auto-submit due to a network error. Please try again.");
+  } finally {
+    isSubmitting = false;
   }
 }
 

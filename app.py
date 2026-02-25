@@ -92,6 +92,14 @@ def welcome_page():
         return redirect(url_for("login_page"))
     return render_template("welcome.html", username=session.get("username"))
 
+@app.route("/failed")
+def failed_page():
+    # Only allow access if they passed password stage
+    if not session.get("pwd_ok"):
+        return redirect(url_for("login_page"))
+
+    return render_template("failed.html", username=session.get("username"))
+
 @app.route("/api/login", methods=["POST"])
 def api_login():
     if session.get("pwd_attempts_left", 0) <= 0:
@@ -224,6 +232,9 @@ def api_sudoku_verify():
     if norm != solution:
         session["sudoku_attempts_left"] -= 1
         left = session["sudoku_attempts_left"]
+        session["sudoku_puzzle"] = None
+        session["sudoku_solution"] = None
+        session["sudoku_start_ts"] = None
 
         return jsonify(
             ok=False,

@@ -283,3 +283,58 @@ button.secondary:hover {
   font-size: 13px;
   opacity: 0.9;
 }
+
+/* Lives / hearts */
+.attempts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attempts-label {
+  opacity: 0.9;
+  font-size: 13px;
+}
+
+.hearts {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 18px;
+  line-height: 1;
+  user-select: none;
+}
+
+.heart {
+  display: inline-block;
+  transform: translateY(1px);
+}
+
+.heart.lost {
+  opacity: 0.25;
+  filter: grayscale(1);
+  transform: translateY(1px) scale(0.92);
+}
+
+/* Pop-in for initial draw / refresh */
+.heart.pop {
+  animation: heartPop 220ms ease;
+}
+
+@keyframes heartPop {
+  from { transform: translateY(1px) scale(0.6); opacity: 0.2; }
+  to   { transform: translateY(1px) scale(1); opacity: 1; }
+}
+
+/* “Break” animation when a life is lost */
+.heart.break {
+  animation: heartBreak 520ms ease forwards;
+}
+
+@keyframes heartBreak {
+  0%   { transform: translateY(1px) scale(1); opacity: 1; filter: none; }
+  15%  { transform: translateY(1px) rotate(-10deg) scale(1.08); }
+  30%  { transform: translateY(1px) rotate(10deg) scale(1.08); }
+  45%  { transform: translateY(1px) rotate(-7deg) scale(1.02); }
+  60%  { transform: translateY(1px) rotate(0deg) scale(0.96); opacity: 0.55; }
+  100% { transform: translateY(1px) scale(0.92); opacity: 0.25; filter: grayscale(1); }
+}
